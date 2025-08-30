@@ -1,1 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>マインスイーパ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            position: relative;
+            background-image: url('https://user-images.githubusercontent.com/109062323/240905398-356a84c2-03d3-4813-8d62-79469e719543.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: #333;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #password-form {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #password-input {
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #password-form button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        #password-form button:hover {
+            background-color: #0056b3;
+        }
+
+        #game-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 90vh;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(var(--grid-cols), 1fr);
+            grid-template-rows: repeat(var(--grid-rows), 1fr);
+            border: 2px solid #333;
+            background-color: transparent;
+            background-image: url('chikawa_manbiki.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            width: 90vw;
+            max-width: 500px; /* added for better mobile view */
+        }
+
+        .cell {
+            position: relative;
+            background-color: #ccc;
+            border: 1px solid #999;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+            aspect-ratio: 1 / 1;
+        }
+
+        .cell span {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .cell.open {
+            background-color: transparent;
+        }
+
+        .cell.bomb {
+            background-color: red;
+        }
+
+        .cell.flag {
+            background-color: #ffcc00;
+        }
+
+        .cell.open.neighbor-1 { color: blue; }
+        .cell.open.neighbor-2 { color: green; }
+        .cell.open.neighbor-3 { color: red; }
+        .cell.open.neighbor-4 { color: purple; }
+        .cell.open.neighbor-5 { color: maroon; }
+        .cell.open.neighbor-6 { color: teal; }
+        .cell.open.neighbor-7 { color: black; }
+        .cell.open.neighbor-8 { color: gray; }
+
+        #status {
+            font-size: 1.5em;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        #restart-button,
+        #view-image-button,
+        #force-clear-button,
+        #mode-button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="password-form">
+        <h2>パスワードを入力してください</h2>
+        <input type="password" id="password-input">
+        <button onclick="checkPassword()">送信</button>
+        <p id="message"></p>
+    </div>
+
+    <div id="game-container">
+        <h1>マインスイーパ</h1>
+        <div id="game-board"></div>
+        <div id="controls">
+            <div id="status"></div>
+            <button id="restart-button">リスタート</button>
+            <button id="view-image-button" style="display: none;">画像を見る</button>
+            <button id="mode-button">旗モードに切り替え</button>
+            <button id="force-clear-button" style="display: none;">強制クリア</button>
+        </div>
+        
+        <div id="description">
+            <br>
+            <p>このゲームは、どこかにある爆弾を触らないようにして、すべてのマスを空けるゲームです。</p>
+            <ul>
+                <br>
+                <br>
+                <li>パネルをタップして開きます。パネルに書かれた数字は、隣接するマスに隠された爆弾の数を示しています。</li>
+                <br>
+                <li>「旗モード」に切り替えると、パネルをタップするだけで旗を立てることができます。怪しいパネルに旗を立てて、目印にしましょう。</li>
+                <br>
+                <li>すべての爆弾を回避して、パネルをすべて開くとゲームクリアです！</li>
+                <br>
+                <li
+                   >コンソールに
+                    ｢document.getElementById('force-clear-button').style.display = 'block';｣             を打ち込むとデバッグモードに入れます。</l1>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // あなたのゲームのJavaScriptコードを貼り付け
+        const board = document.getElementById('game-board');
+        const status = document.getElementById('status');
+        const restartButton = document.getElementById('restart-button');
+        const viewImageButton = document.getElementById('view-image-button');
+        const forceClearButton = document.getElementById('force-clear-button');
+        const modeButton = document.getElementById('mode-button');
+        let cells = [];
+        let isGameOver = false;
+        let isFlagMode = false;
+
+        let rows, cols;
+
+        function initGame() {
+            board.innerHTML = '';
+            board.style.display = 'grid';
+            cells = [];
+            isGameOver = false;
+            isFlagMode = false;
+            status.textContent = '';
+            modeButton.textContent = '旗モードに切り替え';
+            viewImageButton.style.display = 'none';
+            
+            board.style.backgroundColor = 'transparent';
+            board.style.border = '2px solid #333';
+
+            cols = 8;
+            rows = 11;
+            
+            createBoard();
+        }
+        
+        function createBoard() {
+            document.documentElement.style.setProperty('--grid-rows', rows);
+            document.documentElement.style.setProperty('--grid-cols', cols);
+            
+            for (let i = 0; i < rows * cols; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = i;
+                cell.dataset.isBomb = 'false';
+                cell.dataset.isFlag = 'false';
+                cells.push(cell);
+                board.appendChild(cell);
+                
+                cell.addEventListener('click', handleLeftClick);
+                cell.addEventListener('contextmenu', handleRightClick);
+            }
+            
+            const bombsCount = Math.floor(rows * cols * 0.15);
+            placeBombs(bombsCount);
+            calculateNeighborBombs();
+        }
+        
+        function placeBombs(count) {
+            let bombIndexes = new Set();
+            while (bombIndexes.size < count) {
+                bombIndexes.add(Math.floor(Math.random() * cells.length));
+            }
+            bombIndexes.forEach(index => {
+                cells[index].dataset.isBomb = 'true';
+            });
+        }
+
+        function calculateNeighborBombs() {
+            for (let i = 0; i < cells.length; i++) {
+                if (cells[i].dataset.isBomb === 'true') continue;
+                
+                let bombCount = 0;
+                const row = Math.floor(i / cols);
+                const col = i % cols;
+                
+                for (let r = -1; r <= 1; r++) {
+                    for (let c = -1; c <= 1; c++) {
+                        const newRow = row + r;
+                        const newCol = col + c;
+                        
+                        if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
+                            const neighborIndex = newRow * cols + newCol;
+                            if (cells[neighborIndex].dataset.isBomb === 'true') {
+                                bombCount++;
+                            }
+                        }
+                    }
+                }
+                cells[i].dataset.neighborBombs = bombCount;
+            }
+        }
+
+        function handleLeftClick(event) {
+            if (isGameOver) return;
+            const cell = event.target;
+            if (cell.classList.contains('open')) return;
+
+            if (isFlagMode) {
+                toggleFlag(cell);
+            } else {
+                if (cell.dataset.isFlag === 'true') return;
+                
+                if (cell.dataset.isBomb === 'true') {
+                    cell.classList.add('bomb');
+                    status.textContent = 'ゲームオーバー！💣';
+                    isGameOver = true;
+                    revealAllBombs();
+                } else {
+                    const index = parseInt(cell.dataset.index);
+                    openCell(index);
+                    checkWin();
+                }
+            }
+        }
+        
+        function handleRightClick(event) {
+            event.preventDefault();
+            if (isGameOver) return;
+            const cell = event.target;
+            if (cell.classList.contains('open')) return;
+            
+            toggleFlag(cell);
+        }
+        
+        function toggleFlag(cell) {
+            if (cell.dataset.isFlag === 'true') {
+                cell.dataset.isFlag = 'false';
+                cell.classList.remove('flag');
+            } else {
+                cell.dataset.isFlag = 'true';
+                cell.classList.add('flag');
+            }
+        }
+
+        function openCell(index) {
+            const cell = cells[index];
+            if (cell.classList.contains('open') || cell.dataset.isFlag === 'true') return;
+            
+            cell.classList.add('open');
+            const bombCount = parseInt(cell.dataset.neighborBombs);
+            
+            if (bombCount > 0) {
+                cell.innerHTML = `<span>${bombCount}</span>`;
+                cell.classList.add(`neighbor-${bombCount}`);
+            } else {
+                cell.innerHTML = `<span></span>`;
+                const row = Math.floor(index / cols);
+                const col = index % cols;
+                for (let r = -1; r <= 1; r++) {
+                    for (let c = -1; c <= 1; c++) {
+                        const newRow = row + r;
+                        const newCol = col + c;
+                        if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
+                            const neighborIndex = newRow * cols + newCol;
+                            if (!cells[neighborIndex].classList.contains('open')) {
+                                openCell(neighborIndex);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        function revealAllBombs() {
+            cells.forEach(cell => {
+                if (cell.dataset.isBomb === 'true') {
+                    cell.classList.add('bomb');
+                }
+            });
+        }
+
+        function checkWin() {
+            const openedCells = document.querySelectorAll('.cell.open').length;
+            const totalCells = rows * cols;
+            const bombsCount = document.querySelectorAll('.cell[data-is-bomb="true"]').length;
+
+            if (openedCells === totalCells - bombsCount) {
+                status.textContent = 'ゲームクリア！🎉';
+                isGameOver = true;
+                viewImageButton.style.display = 'block';
+            }
+        }
+        
+        function forceClearGame() {
+            cells.forEach((cell, index) => {
+                if (cell.dataset.isBomb === 'false') {
+                    openCell(index);
+                }
+            });
+            checkWin();
+        }
+
+        restartButton.addEventListener('click', () => {
+            initGame();
+        });
+
+        viewImageButton.addEventListener('click', () => {
+            board.style.backgroundColor = 'transparent';
+            board.style.border = 'none';
+            
+            cells.forEach(cell => {
+                cell.innerHTML = '';
+                cell.style.backgroundColor = 'transparent';
+                cell.style.border = 'none';
+            });
+            
+            status.textContent = '背景画像をお楽しみください';
+        });
+
+        forceClearButton.addEventListener('click', () => {
+            forceClearGame();
+        });
+
+        modeButton.addEventListener('click', () => {
+            isFlagMode = !isFlagMode;
+            if (isFlagMode) {
+                modeButton.textContent = '通常モードに切り替え';
+                status.textContent = '旗モードです';
+            } else {
+                modeButton.textContent = '旗モードに切り替え';
+                status.textContent = '';
+            }
+        });
+        
+        // パスワードチェック用のコードは下に追加
+    </script>
+
+    <script>
+        const correctPassword = "kendo-bu"; // ★★★ ここを任意のパスワードに変更してください ★★★
+        
+        function checkPassword() {
+            const enteredPassword = document.getElementById("password-input").value;
+            const passwordForm = document.getElementById("password-form");
+            const gameContainer = document.getElementById("game-container");
+            const message = document.getElementById("message");
+            
+            if (enteredPassword === correctPassword) {
+                passwordForm.style.display = "none";
+                gameContainer.style.display = "flex"; // ここをflexに変更
+                initGame(); // ゲーム開始
+            } else {
+                message.textContent = "パスワードが間違っています。";
+                message.style.color = "red";
+            }
+        }
+    </script>
+</body>
+</html>
 
